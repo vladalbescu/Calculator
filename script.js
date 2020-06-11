@@ -1,8 +1,46 @@
+// DOM Selection
 let displayValue = "";
 let calculatorDisplay = document.querySelector(".display");
 let buttons = document.querySelectorAll(".btn--number, .btn--operation");
 let equalButton = document.querySelector(".btn--equal");
 let clearButton = document.querySelector(".btn--clear");
+
+// Adding Event Listeners
+
+buttons.forEach((button) => {
+  button.addEventListener("click", (e) => {
+    addToDisplayValue(e.target.innerText);
+  });
+});
+
+equalButton.addEventListener("click", () => {
+  calculate();
+});
+
+clearButton.addEventListener("click", () => {
+  clearDisplay();
+});
+
+document.addEventListener("keydown", (e) => {
+  let pressedKey = e.key;
+
+  if (pressedKey === "*") {
+    pressedKey = "×";
+  }
+  if (pressedKey === "/") {
+    pressedKey = "÷";
+  }
+
+  if (pressedKey === "=" || pressedKey === "Enter") {
+    calculate();
+  } else if (pressedKey === "Backspace" || pressedKey.toLowerCase() == "c") {
+    clearDisplay();
+  } else if (isOperator(pressedKey) || isNumber(pressedKey)) {
+    addToDisplayValue(pressedKey);
+  }
+});
+
+// Functions
 
 function add(x, y) {
   return x + y;
@@ -17,65 +55,36 @@ function divide(x, y) {
   return x / y;
 }
 
-buttons.forEach((button) => {
-  button.addEventListener("click", addToDisplayValue);
-});
-
-equalButton.addEventListener("click", () => {
-  calculate();
-});
-
-clearButton.addEventListener("click", () => {
-  displayValue = "";
-  changeDisplay(displayValue);
-});
-
-document.addEventListener("keydown", (e) => {
-  switch (e.key) {
-    case "0":
-    case "1":
-    case "2":
-    case "3":
-    case "4":
-    case "5":
-    case "6":
-    case "7":
-    case "8":
-    case "9":
-      displayValue += e.key;
-      changeDisplay(displayValue);
-      break;
-    case "-":
+function operate(operation, x, y) {
+  switch (operation) {
+    case "×":
+      return multiply(x, y);
+    case "÷":
+      return divide(x, y);
     case "+":
-    case "*":
-    case "%":
-      displayValue = displayValue + " " + e.key;
-      changeDisplay(displayValue);
-      break;
-
-    case "=":
-      calculate();
-      break;
+      return add(x, y);
+    case "-":
+      return substract(x, y);
   }
-});
+}
 
 function changeDisplay(str) {
   calculatorDisplay.innerHTML = str;
 }
 
-function addToDisplayValue(e) {
+function addToDisplayValue(str) {
   if (
-    e.target.classList.contains("btn--operation") &&
+    isOperator(str) &&
     (displayValue.slice(-2, -1) === "+" ||
       displayValue.slice(-2, -1) === "-" ||
       displayValue.slice(-2, -1) === "×" ||
       displayValue.slice(-2, -1) === "÷")
   ) {
-    displayValue = displayValue.slice(0, -2) + " " + e.target.innerText + " ";
-  } else if (e.target.classList.contains("btn--operation")) {
-    displayValue = displayValue + " " + e.target.innerText + " ";
+    displayValue = displayValue.slice(0, -2) + addSpacesAround(str);
+  } else if (isOperator(str)) {
+    displayValue = displayValue + addSpacesAround(str);
   } else {
-    displayValue = displayValue + e.target.innerText;
+    displayValue = displayValue + str;
   }
 
   changeDisplay(displayValue);
@@ -83,60 +92,60 @@ function addToDisplayValue(e) {
 
 function calculate() {
   let splitedValue = displayValue.split(" ");
+  splitedValue = turnStringNumbersToInts(splitedValue);
 
   // Multiplication and Division Pass
-  for (let i = 1; i <= splitedValue.length - 2; i++) {
-    if (splitedValue[i] === "×" || splitedValue[i] === "÷") {
-      let valuesBefore = splitedValue.slice(0, i - 1);
-      let valuesAfter = splitedValue.slice(i + 2);
-
-      let result = [];
-      if (splitedValue[i] === "×") {
-        result[0] = multiply(
-          parseInt(splitedValue[i - 1]),
-          parseInt(splitedValue[i + 1])
-        );
-        console.log(result);
-      } else if (splitedValue[i] === "÷") {
-        result[0] = divide(
-          parseInt(splitedValue[i - 1]),
-          parseInt(splitedValue[i + 1])
-        );
-        console.log(result);
-      }
-
-      splitedValue = [...valuesBefore, ...result, ...valuesAfter];
-      console.log(splitedValue);
-      i = i - 2;
-    }
-  }
+  splitedValue = calculatePass("×", "÷", splitedValue);
 
   // Addition and Substraction Pass
-  for (let i = 1; i <= splitedValue.length - 2; i++) {
-    if (splitedValue[i] === "+" || splitedValue[i] === "-") {
-      let valuesBefore = splitedValue.slice(0, i - 1);
-      let valuesAfter = splitedValue.slice(i + 2);
+  splitedValue = calculatePass("+", "-", splitedValue);
+
+  displayValue = splitedValue[0].toString();
+  changeDisplay(splitedValue[0]);
+}
+
+function calculatePass(operation1, operation2, arr) {
+  for (let i = 1; i <= arr.length - 2; i++) {
+    if (arr[i] === operation1 || arr[i] === operation2) {
+      let valuesBefore = arr.slice(0, i - 1);
+      let valuesAfter = arr.slice(i + 2);
 
       let result = [];
-      if (splitedValue[i] === "+") {
-        result[0] = add(
-          parseInt(splitedValue[i - 1]),
-          parseInt(splitedValue[i + 1])
-        );
-        console.log(result);
-      } else if (splitedValue[i] === "-") {
-        result[0] = substract(
-          parseInt(splitedValue[i - 1]),
-          parseInt(splitedValue[i + 1])
-        );
-        console.log(result);
+      if (arr[i] === operation1) {
+        result[0] = operate(operation1, arr[i - 1], arr[i + 1]);
+      } else if (arr[i] === operation2) {
+        result[0] = operate(operation2, arr[i - 1], arr[i + 1]);
       }
 
-      splitedValue = [...valuesBefore, ...result, ...valuesAfter];
-      console.log(splitedValue);
+      arr = [...valuesBefore, ...result, ...valuesAfter];
       i = i - 2;
     }
   }
+  return arr;
+}
+
+function turnStringNumbersToInts(arr) {
+  for (let i = 0; i < arr.length; i++) {
+    if (!isOperator(arr[i])) {
+      arr[i] = parseFloat(arr[i]);
+    }
+  }
+  return arr;
+}
+
+function addSpacesAround(str) {
+  return " " + str + " ";
+}
+
+function isOperator(str) {
+  return str === "×" || str === "÷" || str === "+" || str === "-";
+}
+
+function isNumber(str) {
+  return str >= "0" && str <= "9";
+}
+
+function clearDisplay() {
   displayValue = "";
-  changeDisplay(splitedValue[0]);
+  changeDisplay(displayValue);
 }
